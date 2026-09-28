@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>TempMailer</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg: #0b0d12;
+      --surface: rgba(22, 26, 36, 0.75);
+      --surface2: rgba(32, 38, 52, 0.9);
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #f2f4f8;
+      --muted: #8b93a7;
+      --accent: #6c8cff;
+      --accent2: #a78bfa;
+      --success: #34d399;
+      --danger: #f87171;
+      --glow: rgba(108, 140, 255, 0.35);
+      --radius: 18px;
+      --font: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      height: 100%;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    body {
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(108, 140, 255, 0.18), transparent),
+        radial-gradient(ellipse 60% 40% at 100% 100%, rgba(167, 139, 250, 0.12), transparent),
+        var(--bg);
+      min-height: 100dvh;
+    }
+
+    .app {
+      max-width: 440px;
+      margin: 0 auto;
+      padding: 16px 16px 32px;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      animation: fadeIn 0.45s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: none; }
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: none; }
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 var(--glow); }
+      50% { box-shadow: 0 0 0 10px transparent; }
+    }
+
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 2px 8px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+    }
+
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: grid;
+      place-items: center;
+      font-size: 16px;
+      box-shadow: 0 4px 16px var(--glow);
+    }
+
+    .status-pill {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: rgba(52, 211, 153, 0.12);
+      color: var(--success);
+      border: 1px solid rgba(52, 211, 153, 0.25);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-pill .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--success);
+      animation: pulse 2s infinite;
+    }
+
+    .card {
+      background: var(--surface);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      animation: slideUp 0.4s ease both;
+    }
+
+    .card.delay-1 { animation-delay: 0.05s; }
+    .card.delay-2 { animation-delay: 0.1s; }
+    .card.delay-3 { animation-delay: 0.15s; }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .email-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 14px 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      word-break: break-all;
+    }
+
+    .email-box code {
+      flex: 1;
+      font-size: 14px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+
+    .icon-btn {
+      width: 40px;
+      height: 40px;
+      border: none;
+      border-radius: 12px;
+      background: rgba(108, 140, 255, 0.15);
+      color: var(--accent);
+      font-size: 16px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      transition: transform 0.15s, background 0.15s;
+      flex-shrink: 0;
+    }
+
+    .icon-btn:active { transform: scale(0.92); }
+    .icon-btn:hover { background: rgba(108, 140, 255, 0.28); }
+
+    .btn {
+      width: 100%;
+      border: none;
+      border-radius: 14px;
+      padding: 14px 18px;
+      font-size: 15px;
+      font-weight: 650;
+      font-family: inherit;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #6c8cff, #8b6cff);
+      color: #fff;
+      box-shadow: 0 8px 24px rgba(108, 140, 255, 0.35);
+    }
+
+    .btn-primary:not(:disabled):hover {
+      box-shadow: 0 10px 28px rgba(108, 140, 255, 0.45);
+    }
+
+    .btn-ghost {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-danger {
+      background: rgba(248, 113, 113, 0.12);
+      color: var(--danger);
+      border: 1px solid rgba(248, 113, 113, 0.25);
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .row .btn { flex: 1; }
+
+    .empty {
+      text-align: center;
+      padding: 28px 12px;
+      color: var(--muted);
+    }
+
+    .empty .big {
+      font-size: 40px;
+      margin-bottom: 10px;
+      opacity: 0.7;
+    }
+
+    .empty p {
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .msg-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 42vh;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .msg {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 14px;
+      animation: slideUp 0.35s ease both;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+
+    .msg:hover { border-color: rgba(108, 140, 255, 0.35); }
+
+    .msg.otp-hit {
+      border-color: rgba(52, 211, 153, 0.45);
+      background: rgba(52, 211, 153, 0.08);
+      animation: pulse 1.5s ease 2;
+    }
+
+    .msg-from {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .msg-subject {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .otp-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(52, 211, 153, 0.15);
+      color: var(--success);
+      font-family: ui-monospace, monospace;
+      font-weight: 700;
+      font-size: 16px;
+      letter-spacing: 0.12em;
+      padding: 6px 12px;
+      border-radius: 10px;
+      margin-top: 4px;
+    }
+
+    .loader {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255,255,255,0.25);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 28px;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 12px 18px;
+      border-radius: 14px;
+      font-size: 13px;
+      font-weight: 600;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s ease;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .domain-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .domain-chip {
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 10px 8px;
+      font-size: 12px;
+      font-family: ui-monospace, monospace;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+    }
+
+    .domain-chip:hover, .domain-chip.active {
+      border-color: var(--accent);
+      background: rgba(108, 140, 255, 0.15);
+      color: #b8c9ff;
+    }
+
+    .hidden { display: none !important; }
+
+    .skeleton {
+      background: linear-gradient(90deg, var(--surface2) 25%, rgba(255,255,255,0.06) 50%, var(--surface2) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.2s infinite;
+      border-radius: 10px;
+      height: 16px;
+    }
+
+    .footer-note {
+      text-align: center;
+      font-size: 11px;
+      color: var(--muted);
+      padding: 8px;
+      opacity: 0.8;
+    }
+
+    /* detail modal */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(6px);
+      z-index: 50;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s;
+    }
+
+    .overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .sheet {
+      width: 100%;
+      max-width: 440px;
+      max-height: 78vh;
+      background: #141824;
+      border: 1px solid var(--border);
+      border-radius: 22px 22px 0 0;
+      padding: 12px 18px 28px;
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+      overflow-y: auto;
+    }
+
+    .overlay.show .sheet { transform: translateY(0); }
+
+    .sheet-handle {
+      width: 40px;
+      height: 4px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 4px;
+      margin: 0 auto 14px;
+    }
+
+    .sheet-body {
+      font-size: 13px;
+      line-height: 1.55;
+      color: #c8cedc;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <div class="header">
+      <div class="logo">
+        <div class="logo-icon">✦</div>
+        <span>TempMailer</span>
+      </div>
+      <div class="status-pill" id="statusPill">
+        <span class="dot"></span>
+        <span id="statusText">Ready</span>
+      </div>
+    </div>
+
+    <!-- No inbox yet -->
+    <div id="welcomeView">
+      <div class="card delay-1">
+        <div class="empty">
+          <div class="big">📮</div>
+          <p><b style="color:var(--text)">Private temporary inbox</b><br/>
+          Create an email — OTPs land here automatically.</p>
+        </div>
+        <button class="btn btn-primary" id="btnCreate" onclick="createMail()">
+          <span>✨</span> Generate email
+        </button>
+      </div>
+      <div class="card delay-2">
+        <div class="section-label">Domain (optional)</div>
+        <div class="domain-grid" id="domainGrid">
+          <div class="skeleton" style="height:38px"></div>
+          <div class="skeleton" style="height:38px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active inbox -->
+    <div id="inboxView" class="hidden">
+      <div class="card delay-1">
+        <div class="section-label">Your email</div>
+        <div class="email-box">
+          <code id="emailAddr">—</code>
+          <button class="icon-btn" onclick="copyEmail()" title="Copy">📋</button>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button class="btn btn-ghost" onclick="createMail()">⚡ New</button>
+          <button class="btn btn-ghost" onclick="refreshInbox(true)">🔄 Refresh</button>
+          <button class="btn btn-danger" onclick="deleteMail()">🗑</button>
+        </div>
+      </div>
+
+      <div class="card delay-2">
+        <div class="section-label">Inbox · auto-refresh</div>
+        <div id="msgList" class="msg-list">
+          <div class="empty"><p>Waiting for mail…</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-note">Works with the Telegram bot · OTPs auto-detected</div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="overlay" id="overlay" onclick="closeSheet(event)">
+    <div class="sheet" onclick="event.stopPropagation()">
+      <div class="sheet-handle"></div>
+      <div class="section-label" id="sheetTitle">Message</div>
+      <div class="sheet-body" id="sheetBody"></div>
+      <button class="btn btn-primary" style="margin-top:16px" id="sheetCopyBtn" onclick="copySheetOtp()">Copy OTP</button>
+    </div>
+  </div>
+
+  <script>
+    const API = location.origin + "/api";  // same-origin proxy on Render
+    const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+
+    let box = null;           // { address, password, token, id, seen }
+    let selectedDomain = null;
+    let pollTimer = null;
+    let sheetOtp = null;
+
+    // Telegram theme
+    if (tg) {
+      tg.ready();
+      tg.expand();
+      try {
+        document.documentElement.style.setProperty("--bg", tg.themeParams.bg_color || "#0b0d12");
+        document.documentElement.style.setProperty("--text", tg.themeParams.text_color || "#f2f4f8");
+        document.documentElement.style.setProperty("--muted", tg.themeParams.hint_color || "#8b93a7");
+        document.documentElement.style.setProperty("--accent", tg.themeParams.button_color || "#6c8cff");
+      } catch (e) {}
+      tg.MainButton.hide();
+    }
+
+    function toast(msg) {
+      const el = document.getElementById("toast");
+      el.textContent = msg;
+      el.classList.add("show");
+      clearTimeout(el._t);
+      el._t = setTimeout(() => el.classList.remove("show"), 2200);
+      if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
+    }
+
+    function setStatus(text, ok = true) {
+      document.getElementById("statusText").textContent = text;
+      const pill = document.getElementById("statusPill");
+      pill.style.color = ok ? "var(--success)" : "var(--danger)";
+      pill.style.background = ok ? "rgba(52,211,153,0.12)" : "rgba(248,113,113,0.12)";
+      pill.style.borderColor = ok ? "rgba(52,211,153,0.25)" : "rgba(248,113,113,0.25)";
+    }
+
+    function randName() {
+      const names = "alex aria bella cody dora echo finn gia hugo iris jazz kiro luna maya nova orin pixi quin ruby sage tara umi vera wren leo mia noah kai zoey".split(" ");
+      return names[Math.floor(Math.random() * names.length)] + (100 + Math.floor(Math.random() * 9900));
+    }
+
+    function randPass(n = 14) {
+      const c = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+      let s = "";
+      for (let i = 0; i < n; i++) s += c[Math.floor(Math.random() * c.length)];
+      return s;
+    }
+
+    async function api(path, opts = {}) {
+      const res = await fetch(API + path, {
+        ...opts,
+        headers: {
+          "Content-Type": "application/json",
+          ...(opts.headers || {}),
+        },
+      });
+      if (!res.ok) {
+        let err = `HTTP ${res.status}`;
+        try { err = (await res.json()).message || err; } catch (e) {}
+        throw new Error(err);
+      }
+      const ct = res.headers.get("content-type") || "";
+      if (ct.includes("json")) return res.json();
+      return res.text();
+    }
+
+    function parseList(data) {
+      if (Array.isArray(data)) return data;
+      if (data && typeof data === "object") return data["hydra:member"] || data.member || [];
+      return [];
+    }
+
+    async function loadDomains() {
+      try {
+        const data = await api("/domains");
+        const items = parseList(data);
+        const domains = items.filter(d => d.isActive !== false).map(d => d.domain);
+        const grid = document.getElementById("domainGrid");
+        if (!domains.length) {
+          grid.innerHTML = '<div style="grid-column:1/-1;color:var(--muted);font-size:13px">No domains right now</div>';
+          return;
+        }
+        grid.innerHTML = domains.map(d =>
+          `<button class="domain-chip" data-d="${d}" onclick="pickDomain('${d}')">@${d}</button>`
+        ).join("");
+      } catch (e) {
+        document.getElementById("domainGrid").innerHTML =
+          `<div style="grid-column:1/-1;color:var(--muted);font-size:12px">Domains unavailable</div>`;
+      }
+    }
+
+    function pickDomain(d) {
+      selectedDomain = d;
+      document.querySelectorAll(".domain-chip").forEach(el => {
+        el.classList.toggle("active", el.dataset.d === d);
+      });
+      toast("Domain: @" + d);
+    }
+
+    async function createMail() {
+      const btn = document.getElementById("btnCreate");
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="loader"></span> Creating…';
+      }
+      setStatus("Creating…");
+      try {
+        let domains = [];
+        try {
+          const data = await api("/domains");
+          domains = parseList(data).filter(d => d.isActive !== false).map(d => d.domain);
+        } catch (e) {}
+        const domain = (selectedDomain && domains.includes(selectedDomain))
+          ? selectedDomain
+          : (domains[0] || "uberip.com");
+
+        let lastErr = "failed";
+        for (let i = 0; i < 5; i++) {
+          const address = `${randName()}@${domain}`;
+          const password = randPass();
+          try {
+            const acc = await api("/accounts", {
+              method: "POST",
+              body: JSON.stringify({ address, password }),
+            });
+            const tok = await api("/token", {
+              method: "POST",
+              body: JSON.stringify({ address, password }),
+            });
+            box = {
+              id: acc.id,
+              address,
+              password,
+              token: tok.token,
+              seen: new Set(),
+            };
+            localStorage.setItem("tm_box", JSON.stringify({
+              ...box,
+              seen: [...box.seen],
+            }));
+            showInbox();
+            toast("Inbox ready");
+            setStatus("Live");
+            startPoll();
+            // notify bot if opened from bot
+            if (tg && tg.sendData) {
+              try {
+                tg.sendData(JSON.stringify({ action: "created", address }));
+              } catch (e) {}
+            }
+            return;
+          } catch (e) {
+            lastErr = e.message || String(e);
+            if (String(lastErr).includes("422") || String(lastErr).toLowerCase().includes("taken")) continue;
+            await new Promise(r => setTimeout(r, 400));
+          }
+        }
+        throw new Error(lastErr);
+      } catch (e) {
+        toast("Could not create: " + (e.message || e));
+        setStatus("Error", false);
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = "<span>✨</span> Generate email";
+        }
+      }
+    }
+
+    function showInbox() {
+      document.getElementById("welcomeView").classList.add("hidden");
+      document.getElementById("inboxView").classList.remove("hidden");
+      document.getElementById("emailAddr").textContent = box.address;
+      refreshInbox(false);
+    }
+
+    function showWelcome() {
+      document.getElementById("inboxView").classList.add("hidden");
+      document.getElementById("welcomeView").classList.remove("hidden");
+      stopPoll();
+    }
+
+    function copyEmail() {
+      if (!box) return;
+      navigator.clipboard.writeText(box.address).then(() => toast("Email copied")).catch(() => {
+        toast(box.address);
+      });
+      if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred("light");
+    }
+
+    function extractOtp(subject, body) {
+      const blob = (subject || "") + "\n" + (body || "");
+      const hinted = blob.match(/(?:verification\s+code|otp|code|pin|passcode|token)(?:\s+(?:is|number))?\s*[:#-]?\s*([A-Z0-9]{4,8})\b/i);
+      if (hinted) return hinted[1];
+      const noise = new Set(["2024","2025","2026","0000","1111","1234","9999"]);
+      const m = blob.match(/\b(\d{4,8})\b/);
+      if (m && !noise.has(m[1])) return m[1];
+      const m2 = blob.match(/\b([A-Z0-9]{5,8})\b/);
+      if (m2 && !/^[A-Z]+$/.test(m2[1])) return m2[1];
+      return null;
+    }
+
+    async function refreshInbox(manual) {
+      if (!box) return;
+      if (manual) setStatus("Refreshing…");
+      try {
+        const data = await api("/messages?page=1", {
+          headers: { Authorization: "Bearer " + box.token },
+        });
+        let msgs = parseList(data);
+        // re-auth if needed handled by proxy 401? client can retry
+        const list = document.getElementById("msgList");
+        if (!msgs.length) {
+          list.innerHTML = '<div class="empty"><p>📭 Inbox empty — waiting for mail…</p></div>';
+          if (manual) setStatus("Live");
+          return;
+        }
+        // newest first
+        msgs = msgs.slice(0, 15);
+        list.innerHTML = "";
+        for (const m of msgs) {
+          const from = (m.from && m.from.address) || "unknown";
+          const subject = m.subject || "(no subject)";
+          // try get body for otp if not seen
+          let otp = null;
+          let bodyPreview = "";
+          try {
+            const full = await api("/messages/" + m.id, {
+              headers: { Authorization: "Bearer " + box.token },
+            });
+            const text = full.text || (Array.isArray(full.html) ? full.html[0] : full.html || "");
+            const clean = String(text).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 400);
+            bodyPreview = clean;
+            otp = extractOtp(subject, clean);
+          } catch (e) {}
+
+          const div = document.createElement("div");
+          div.className = "msg" + (otp ? " otp-hit" : "");
+          div.innerHTML = `
+            <div class="msg-from">${esc(from)}</div>
+            <div class="msg-subject">${esc(subject)}</div>
+            ${otp ? `<div class="otp-badge" onclick="event.stopPropagation();copyText('${otp}')">⚡ ${esc(otp)}</div>` : ""}
+          `;
+          div.onclick = () => openSheet(subject, bodyPreview, otp);
+          list.appendChild(div);
+
+          if (otp && box.seen && !box.seen.has(m.id)) {
+            box.seen.add(m.id);
+            toast("OTP: " + otp);
+            if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
+          }
+        }
+        localStorage.setItem("tm_box", JSON.stringify({ ...box, seen: [...(box.seen || [])] }));
+        setStatus("Live");
+      } catch (e) {
+        if (String(e.message).includes("401")) {
+          try {
+            const tok = await api("/token", {
+              method: "POST",
+              body: JSON.stringify({ address: box.address, password: box.password }),
+            });
+            box.token = tok.token;
+            return refreshInbox(manual);
+          } catch (e2) {}
+        }
+        if (manual) toast("Refresh failed");
+        setStatus("Offline", false);
+      }
+    }
+
+    function esc(s) {
+      return String(s || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function copyText(t) {
+      navigator.clipboard.writeText(t).then(() => toast("Copied: " + t)).catch(() => toast(t));
+    }
+
+    function openSheet(title, body, otp) {
+      sheetOtp = otp;
+      document.getElementById("sheetTitle").textContent = title || "Message";
+      document.getElementById("sheetBody").textContent = body || "(empty)";
+      const btn = document.getElementById("sheetCopyBtn");
+      if (otp) {
+        btn.classList.remove("hidden");
+        btn.textContent = "Copy OTP · " + otp;
+      } else {
+        btn.classList.add("hidden");
+      }
+      document.getElementById("overlay").classList.add("show");
+    }
+
+    function closeSheet(e) {
+      if (e && e.target !== document.getElementById("overlay")) return;
+      document.getElementById("overlay").classList.remove("show");
+    }
+
+    function copySheetOtp() {
+      if (sheetOtp) copyText(sheetOtp);
+    }
+
+    async function deleteMail() {
+      if (!box) return;
+      try {
+        await api("/accounts/" + box.id, {
+          method: "DELETE",
+          headers: { Authorization: "Bearer " + box.token },
+        });
+      } catch (e) {}
+      box = null;
+      localStorage.removeItem("tm_box");
+      showWelcome();
+      setStatus("Ready");
+      toast("Inbox deleted");
+    }
+
+    function startPoll() {
+      stopPoll();
+      pollTimer = setInterval(() => refreshInbox(false), 800);
+    }
+
+    function stopPoll() {
+      if (pollTimer) clearInterval(pollTimer);
+      pollTimer = null;
+    }
+
+    // restore session
+    (function init() {
+      loadDomains();
+      try {
+        const raw = localStorage.getItem("tm_box");
+        if (raw) {
+          const b = JSON.parse(raw);
+          b.seen = new Set(b.seen || []);
+          box = b;
+          showInbox();
+          startPoll();
+          setStatus("Live");
+        }
+      } catch (e) {}
+    })();
+  </script>
+</body>
+</html>
